@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+< html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Optimizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0c0f;
+    --surface:  #111418;
+    --border:   #1e2530;
+    --border2:  #2a3340;
+    --text:     #c8d4e0;
+    --muted:    #5a6a7a;
+    --accent:   #00d4aa;
+    --accent2:  #0088ff;
+    --warn:     #ff8c00;
+    --danger:   #ff3d5a;
+    --success:  #00d4aa;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .logo {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+  }
+  .logo-mark {
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .logo-name {
+    font-size: 17px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.3px;
+  }
+
+  .nav { padding: 12px 8px; flex: 1; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    transition: all 0.15s;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .nav-item.active {
+    color: var(--accent);
+    background: rgba(0,212,170,0.08);
+    border-color: rgba(0,212,170,0.2);
+  }
+  .nav-item .icon { font-size: 14px; width: 18px; text-align: center; }
+
+  .sidebar-footer {
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .status-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100%{opacity:1} 50%{opacity:0.4}
+  }
+
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topbar {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .page-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    font-family: var(--mono);
+  }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+  .content { padding: 24px; flex: 1; }
+
+  /* ── Tabs ── */
+  .tab { display: none; }
+  .tab.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .card-body { padding: 16px; }
+
+  /* ── Stats grid ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content:'';
+    position:absolute;
+    top:0;left:0;right:0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.6;
+  }
+  .stat-card.blue::before { background: var(--accent2); }
+  .stat-card.warn::before { background: var(--warn); }
+  .stat-card.danger::before { background: var(--danger); }
+
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-sub {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .stat-trend {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    margin-top: 6px;
+  }
+
+  /* ── Chart ── */
+  .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .chart-wrap { position: relative; height: 180px; }
+  canvas { width: 100% !important; height: 100% !important; }
+
+  /* ── Tables ── */
+  .data-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  .data-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+  .data-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(30,37,48,0.8);
+    color: var(--text);
+    vertical-align: middle;
+  }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .data-table tr:last-child td { border-bottom: none; }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+  .badge-hit { background: rgba(0,212,170,0.15); color: var(--accent); border: 1px solid rgba(0,212,170,0.25); }
+  .badge-miss { background: rgba(90,106,122,0.2); color: var(--muted); border: 1px solid rgba(90,106,122,0.3); }
+  .badge-mock { background: rgba(255,140,0,0.15); color: var(--warn); border: 1px solid rgba(255,140,0,0.25); }
+  .badge-semantic { background: rgba(0,136,255,0.15); color: var(--accent2); border: 1px solid rgba(0,136,255,0.25); }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .btn:hover { background: rgba(255,255,255,0.08); border-color: var(--border2); }
+  .btn-primary { background: rgba(0,212,170,0.15); border-color: rgba(0,212,170,0.4); color: var(--accent); }
+  .btn-primary:hover { background: rgba(0,212,170,0.25); }
+  .btn-danger { background: rgba(255,61,90,0.1); border-color: rgba(255,61,90,0.3); color: var(--danger); }
+  .btn-danger:hover { background: rgba(255,61,90,0.2); }
+  .btn-sm { padding: 3px 9px; font-size: 10px; }
+
+  /* ── Forms ── */
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .form-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 8px 10px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  textarea.form-input { resize: vertical; min-height: 80px; }
+
+  /* ── Toggle ── */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-info { flex: 1; }
+  .toggle-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .toggle-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .toggle {
+    position: relative;
+    width: 36px; height: 20px;
+    flex-shrink: 0;
+    margin-left: 16px;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0;
+    background: var(--border2);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    left: 3px; top: 3px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: all 0.2s;
+  }
+  .toggle input:checked + .toggle-slider { background: rgba(0,212,170,0.3); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(16px); background: var(--accent); }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    width: 480px;
+    max-width: 95vw;
+    padding: 0;
+    overflow: hidden;
+  }
+  .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-title { font-family: var(--mono); font-size: 13px; color: #fff; }
+  .modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; }
+  .modal-body { padding: 20px; }
+  .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* ── Slider ── */
+  .range-row { display: flex; align-items: center; gap: 10px; }
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 3px;
+    background: var(--border2);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+  .range-val { font-family: var(--mono); font-size: 12px; color: var(--accent); width: 40px; text-align: right; }
+
+  /* ── Empty state ── */
+  .empty { text-align: center; padding: 48px; color: var(--muted); font-family: var(--mono); }
+  .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+
+  /* ── Notification ── */
+  #notif {
+    position: fixed; bottom: 20px; right: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 999;
+  }
+  #notif.show { opacity: 1; transform: translateY(0); }
+
+  /* ── Code snippet ── */
+  .code-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #a8c0d0;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+  .code-block .kw { color: #c792ea; }
+  .code-block .str { color: #c3e88d; }
+  .code-block .cm { color: var(--muted); }
+  .code-block .fn { color: #82aaff; }
+  .code-block .var { color: #f07178; }
+
+  .section-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    margin-top: 24px;
+  }
+  .section-title:first-child { margin-top: 0; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <span class="logo-mark">◈ Optimizer</span>
+      <span class="logo-name">API Optimizer</span>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="showTab('dashboard')">
+        <span class="icon">▦</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showTab('cache')">
+        <span class="icon">⊟</span> Cache
+      </div>
+      <div class="nav-item" onclick="showTab('mocks')">
+        <span class="icon">⊛</span> Mock Templates
+      </div>
+      <div class="nav-item" onclick="showTab('budgets')">
+        <span class="icon">◎</span> Budgets
+      </div>
+      <div class="nav-item" onclick="showTab('settings')">
+        <span class="icon">⊙</span> Settings
+      </div>
+      <div class="nav-item" onclick="showTab('docs')">
+        <span class="icon">⊞</span> Integration
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="status-dot"></span>PROXY ACTIVE<br>
+      <span style="color:#3a4a5a">localhost:8000</span>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div class="page-title" id="page-title">DASHBOARD</div>
+      <div class="topbar-actions">
+        <select id="days-select" class="form-input" style="width:120px;padding:4px 8px" onchange="loadAnalytics()">
+          <option value="1">24 hours</option>
+          <option value="7" selected>7 days</option>
+          <option value="30">30 days</option>
+        </select>
+        <button class="btn" onclick="refreshAll()">↺ Refresh</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ── DASHBOARD TAB ── -->
+      <div id="tab-dashboard" class="tab active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Requests</div>
+            <div class="stat-value" id="s-total">—</div>
+            <div class="stat-sub">all time</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Cache Hit Rate</div>
+            <div class="stat-value" id="s-hitrate">—</div>
+            <div class="stat-trend" id="s-hits">— hits</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-label">Total Saved</div>
+            <div class="stat-value" id="s-saved">—</div>
+            <div class="stat-sub">USD avoided</div>
+          </div>
+          <div class="stat-card warn">
+            <div class="stat-label">Actual Spend</div>
+            <div class="stat-value" id="s-spent">—</div>
+            <div class="stat-sub">USD incurred</div>
+          </div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Requests & Savings — Daily</span>
+            </div>
+            <div class="card-body">
+              <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Cache Hit Breakdown</span>
+            </div>
+            <div class="card-body">
+              <div class="chart-wrap"><canvas id="chart-hits"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Requests by Model</span>
+          </div>
+          <div class="card-body" style="padding:0">
+            <table class="data-table">
+              <thead><tr>
+                <th>Model</th>
+                <th>Requests</th>
+                <th>Cache Hits</th>
+                <th>Hit %</th>
+                <th>Cost (USD)</th>
+              </tr></thead>
+              <tbody id="model-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CACHE TAB ── -->
+      <div id="tab-cache" class="tab">
+        <div class="card-header" style="background:var(--surface);border:1px solid var(--border);border-radius:6px 6px 0 0;margin-bottom:0">
+          <span class="card-title">Cached Responses</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="loadCache()">↺ Refresh</button>
+            <button class="btn btn-sm btn-danger" onclick="clearCache()">✕ Clear All</button>
+          </div>
+        </div>
+        <div class="card" style="border-radius:0 0 6px 6px;border-top:none">
+          <div style="padding:0">
+            <table class="data-table">
+              <thead><tr>
+                <th>Prompt</th>
+                <th>Model</th>
+                <th>Hits</th>
+                <th>Tokens In/Out</th>
+                <th>Created</th>
+                <th></th>
+              </tr></thead>
+              <tbody id="cache-table"></tbody>
+            </table>
+            <div id="cache-empty" class="empty" style="display:none">
+              <div class="empty-icon">⊟</div>
+              No cached entries yet
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MOCKS TAB ── -->
+      <div id="tab-mocks" class="tab">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div class="section-title" style="margin:0">Mock Templates</div>
+          <button class="btn btn-primary" onclick="openModal('mock-modal')">+ Add Template</button>
+        </div>
+        <div class="card">
+          <div style="padding:0">
+            <table class="data-table">
+              <thead><tr>
+                <th>Name</th>
+                <th>Pattern (regex)</th>
+                <th>Model</th>
+                <th>Response Preview</th>
+                <th></th>
+              </tr></thead>
+              <tbody id="mocks-table"></tbody>
+            </table>
+            <div id="mocks-empty" class="empty" style="display:none">
+              <div class="empty-icon">⊛</div>
+              No mock templates configured
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── BUDGETS TAB ── -->
+      <div id="tab-budgets" class="tab">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div class="section-title" style="margin:0">Budget Limits</div>
+          <button class="btn btn-primary" onclick="openModal('budget-modal')">+ Add Budget</button>
+        </div>
+        <div id="budgets-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
+        <div id="budgets-empty" class="empty" style="display:none">
+          <div class="empty-icon">◎</div>
+          No budgets configured
+        </div>
+      </div>
+
+      <!-- ── SETTINGS TAB ── -->
+      <div id="tab-settings" class="tab">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Cache Settings</span></div>
+            <div class="card-body">
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-name">Exact Cache</div>
+                  <div class="toggle-desc">Return identical responses for exact prompt matches</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="s-cache-enabled" onchange="saveSetting('cache_enabled', this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-name">Semantic Cache</div>
+                  <div class="toggle-desc">Match semantically similar prompts using ChromaDB</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="s-semantic-enabled" onchange="saveSetting('semantic_enabled', this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-name">Mock Responses</div>
+                  <div class="toggle-desc">Return mock data for pattern-matched prompts</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="s-mocks-enabled" onchange="saveSetting('mocks_enabled', this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="form-group" style="margin-top:16px;margin-bottom:0">
+                <div class="form-label">Similarity Threshold</div>
+                <div class="range-row">
+                  <input type="range" min="0.5" max="1.0" step="0.01" id="s-threshold"
+                    oninput="document.getElementById('threshold-val').textContent=this.value"
+                    onchange="saveSetting('semantic_threshold', parseFloat(this.value))">
+                  <span class="range-val" id="threshold-val">0.88</span>
+                </div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px">Higher = stricter matching</div>
+              </div>
+              <div class="form-group" style="margin-top:12px;margin-bottom:0">
+                <div class="form-label">Cache TTL (seconds)</div>
+                <input type="number" id="s-ttl" class="form-input" value="86400"
+                  onchange="saveSetting('cache_ttl', parseInt(this.value))">
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Pricing Reference</span></div>
+            <div class="card-body" style="padding:0">
+              <table class="data-table" style="font-size:11px">
+                <thead><tr>
+                  <th>Model</th>
+                  <th>In / 1M</th>
+                  <th>Out / 1M</th>
+                </tr></thead>
+                <tbody id="pricing-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DOCS TAB ── -->
+      <div id="tab-docs" class="tab">
+        <div class="section-title">Drop-in Integration</div>
+        <p style="color:var(--muted);margin-bottom:16px;line-height:1.6">
+          Change only the <code style="color:var(--accent)">base_url</code> in your existing code. No other changes needed.
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div class="card">
+            <div class="card-header"><span class="card-title">OpenAI (Python)</span></div>
+            <div class="card-body">
+              <div class="code-block"><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+
+<span class="cm"># Before:</span>
+<span class="var">client</span> = OpenAI(api_key=<span class="str">"sk-..."</span>)
+
+<span class="cm"># After (one line change):</span>
+<span class="var">client</span> = OpenAI(
+  api_key=<span class="str">"sk-..."</span>,
+  base_url=<span class="str">"http://localhost:8000/openai"</span>
+)
+
+<span class="cm"># All calls work identically:</span>
+<span class="var">resp</span> = <span class="var">client</span>.chat.completions.<span class="fn">create</span>(
+  model=<span class="str">"gpt-4o"</span>,
+  messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Hello"</span>}]
+)</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Anthropic (Python)</span></div>
+            <div class="card-body">
+              <div class="code-block"><span class="kw">import</span> anthropic
+
+<span class="cm"># Before:</span>
+<span class="var">client</span> = anthropic.Anthropic(api_key=<span class="str">"sk-..."</span>)
+
+<span class="cm"># After (one line change):</span>
+<span class="var">client</span> = anthropic.Anthropic(
+  api_key=<span class="str">"sk-..."</span>,
+  base_url=<span class="str">"http://localhost:8000/anthropic"</span>
+)
+
+<span class="cm"># All calls work identically:</span>
+<span class="var">msg</span> = <span class="var">client</span>.messages.<span class="fn">create</span>(
+  model=<span class="str">"claude-3-opus-20240229"</span>,
+  messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Hello"</span>}],
+  max_tokens=1024
+)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">Multi-Variant Generation</div>
+        <p style="color:var(--muted);margin-bottom:12px;line-height:1.6">
+          Add <code style="color:var(--accent)">_optimizer_variants: N</code> to generate N response variants in one batch call.
+        </p>
+        <div class="card">
+          <div class="card-body">
+            <div class="code-block"><span class="kw">import</span> httpx, json
+
+<span class="var">resp</span> = httpx.<span class="fn">post</span>(<span class="str">"http://localhost:8000/openai/v1/chat/completions"</span>,
+  headers={<span class="str">"Authorization"</span>: <span class="str">"Bearer sk-..."</span>},
+  json={
+    <span class="str">"model"</span>: <span class="str">"gpt-4o"</span>,
+    <span class="str">"messages"</span>: [{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Write a tagline for a coffee brand"</span>}],
+    <span class="str">"_optimizer_variants"</span>: <span class="str">5</span>   <span class="cm"># ← magic field: generates 5 variants</span>
+  }
+)
+<span class="cm"># Returns: {"variants": [{"variant": 0, "text": "..."}, ...]}</span>
+<span class="kw">for</span> v <span class="kw">in</span> resp.json()[<span class="str">"variants"</span>]:
+    <span class="fn">print</span>(<span class="str">f"Variant {v['variant']}: {v['text'][:80]}"</span>)</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top:20px">Response Headers</div>
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table class="data-table">
+              <thead><tr><th>Header</th><th>Value</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td>X-Cache-Hit</td><td><span class="badge badge-hit">true/false</span></td><td>Whether response came from cache</td></tr>
+                <tr><td>X-Hit-Type</td><td><span class="badge badge-mock">exact|semantic|mock|miss</span></td><td>Type of cache hit</td></tr>
+                <tr><td>X-Cost-USD</td><td style="font-family:var(--mono)">0.000120</td><td>Cost incurred for this request</td></tr>
+                <tr><td>X-Saved-USD</td><td style="font-family:var(--mono)">0.003200</td><td>Cost saved by cache hit</td></tr>
+                <tr><td>X-Similarity</td><td style="font-family:var(--mono)">0.9412</td><td>Cosine similarity (semantic hits only)</td></tr>
+                <tr><td>X-Latency-Ms</td><td style="font-family:var(--mono)">12</td><td>Total proxy processing time</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<!-- Mock Modal -->
+<div class="modal-overlay" id="mock-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">New Mock Template</span>
+      <button class="modal-close" onclick="closeModal('mock-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Name</label>
+        <input id="mock-name" class="form-input" placeholder="e.g. Greeting Mock">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pattern (regex)</label>
+        <input id="mock-pattern" class="form-input" placeholder="e.g. (hello|hi|hey)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Model (optional, leave blank for all)</label>
+        <input id="mock-model" class="form-input" placeholder="e.g. gpt-4o">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mock Response</label>
+        <textarea id="mock-response" class="form-input" placeholder="Response text to return..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('mock-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createMock()">Create Template</button>
+    </div>
+  </div>
+</div>
+
+<!-- Budget Modal -->
+<div class="modal-overlay" id="budget-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">New Budget</span>
+      <button class="modal-close" onclick="closeModal('budget-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Budget Name</label>
+        <input id="budget-name" class="form-input" placeholder="e.g. Development">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Limit (USD)</label>
+        <input id="budget-limit" class="form-input" type="number" step="0.01" placeholder="e.g. 10.00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Period</label>
+        <select id="budget-period" class="form-input">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly" selected>Monthly</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('budget-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createBudget()">Create Budget</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notification -->
+<div id="notif"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const API = '';
+let dailyChart, hitChart;
+Chart.defaults.color = '#5a6a7a';
+Chart.defaults.borderColor = '#1e2530';
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.font.size = 10;
+
+// ── Tab navigation ────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  document.getElementById('page-title').textContent = name.toUpperCase();
+  if (name === 'cache') loadCache();
+  if (name === 'mocks') loadMocks();
+  if (name === 'budgets') loadBudgets();
+  if (name === 'settings') loadSettings();
+  if (name === 'docs') loadPricing();
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+function notify(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── Modals ────────────────────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── Analytics ────────────────────────────────────────────────────────────────
+async function loadAnalytics() {
+  const days = document.getElementById('days-select').value;
+  const r = await fetch(`${API}/api/analytics?days=${days}`);
+  const d = await r.json();
+  const t = d.totals || {};
+
+  document.getElementById('s-total').textContent = (t.total_requests || 0).toLocaleString();
+  document.getElementById('s-hitrate').textContent = (t.hit_rate || 0).toFixed(1) + '%';
+  document.getElementById('s-hits').textContent = `${t.cache_hits || 0} hits`;
+  document.getElementById('s-saved').textContent = '$' + (t.total_saved || 0).toFixed(4);
+  document.getElementById('s-spent').textContent = '$' + (t.total_cost || 0).toFixed(4);
+
+  renderDailyChart(d.by_day || []);
+  renderHitChart(d.hit_types || []);
+  renderModelTable(d.by_model || []);
+}
+
+function renderDailyChart(days) {
+  const ctx = document.getElementById('chart-daily').getContext('2d');
+  if (dailyChart) dailyChart.destroy();
+  dailyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: days.map(d => d.day),
+      datasets: [
+        {
+          label: 'Requests',
+          data: days.map(d => d.reqs),
+          backgroundColor: 'rgba(0,136,255,0.3)',
+          borderColor: '#0088ff',
+          borderWidth: 1,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Saved $',
+          data: days.map(d => d.saved),
+          type: 'line',
+          borderColor: '#00d4aa',
+          backgroundColor: 'rgba(0,212,170,0.1)',
+          borderWidth: 2,
+          pointRadius: 3,
+          fill: true,
+          yAxisID: 'y1',
+          tension: 0.4,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { boxWidth: 10, padding: 10 } } },
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5a6a7a' } },
+        y1: { position: 'right', grid: { display: false }, ticks: { color: '#00d4aa', callback: v => '$' + v.toFixed(3) } }
+      }
+    }
+  });
+}
+
+function renderHitChart(types) {
+  const ctx = document.getElementById('chart-hits').getContext('2d');
+  if (hitChart) hitChart.destroy();
+  const colors = { exact: '#00d4aa', semantic: '#0088ff', mock: '#ff8c00' };
+  const labels = types.map(t => t.hit_type || 'unknown');
+  hitChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: types.map(t => t.cnt),
+        backgroundColor: labels.map(l => colors[l] || '#5a6a7a'),
+        borderWidth: 0,
+        hoverOffset: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { padding: 14, boxWidth: 10 } } },
+      cutout: '65%',
+    }
+  });
+}
+
+function renderModelTable(models) {
+  const tbody = document.getElementById('model-table');
+  if (!models.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No data yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = models.map(m => {
+    const hitPct = m.reqs ? ((m.hits / m.reqs) * 100).toFixed(1) : '0.0';
+    return `<tr>
+      <td style="color:#fff">${m.model}</td>
+      <td>${m.reqs}</td>
+      <td>${m.hits}</td>
+      <td><span style="color:var(--accent)">${hitPct}%</span></td>
+      <td>$${(m.cost || 0).toFixed(6)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Cache ────────────────────────────────────────────────────────────────────
+async function loadCache() {
+  const r = await fetch(`${API}/api/cache`);
+  const d = await r.json();
+  const tbody = document.getElementById('cache-table');
+  const empty = document.getElementById('cache-empty');
+  if (!d.entries.length) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = d.entries.map(e => `
+    <tr>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.prompt}">${e.preview}</td>
+      <td><span style="color:var(--accent2)">${e.model}</span></td>
+      <td>${e.hit_count}</td>
+      <td>${e.tokens_in} / ${e.tokens_out}</td>
+      <td>${new Date(e.created_at * 1000).toLocaleDateString()}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteCache('${e.id}')">✕</button></td>
+    </tr>
+  `).join('');
+}
+
+async function deleteCache(id) {
+  await fetch(`${API}/api/cache/${id}`, { method: 'DELETE' });
+  notify('Cache entry deleted');
+  loadCache();
+}
+
+async function clearCache() {
+  if (!confirm('Clear all cached entries?')) return;
+  await fetch(`${API}/api/cache`, { method: 'DELETE' });
+  notify('Cache cleared');
+  loadCache();
+}
+
+// ── Mocks ────────────────────────────────────────────────────────────────────
+async function loadMocks() {
+  const r = await fetch(`${API}/api/mocks`);
+  const d = await r.json();
+  const tbody = document.getElementById('mocks-table');
+  const empty = document.getElementById('mocks-empty');
+  if (!d.mocks.length) { tbody.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = d.mocks.map(m => `
+    <tr>
+      <td style="color:#fff">${m.name}</td>
+      <td><code style="color:var(--warn)">${m.pattern}</code></td>
+      <td>${m.model || '<span style="color:var(--muted)">all</span>'}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.response.slice(0,60)}…</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteMock(${m.id})">✕</button></td>
+    </tr>
+  `).join('');
+}
+
+async function createMock() {
+  const body = {
+    name: document.getElementById('mock-name').value,
+    pattern: document.getElementById('mock-pattern').value,
+    response: document.getElementById('mock-response').value,
+    model: document.getElementById('mock-model').value || null,
+  };
+  if (!body.pattern || !body.response) { notify('Pattern and response required'); return; }
+  await fetch(`${API}/api/mocks`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+  closeModal('mock-modal');
+  notify('Mock template created');
+  loadMocks();
+}
+
+async function deleteMock(id) {
+  await fetch(`${API}/api/mocks/${id}`, { method: 'DELETE' });
+  notify('Mock deleted');
+  loadMocks();
+}
+
+// ── Budgets ──────────────────────────────────────────────────────────────────
+async function loadBudgets() {
+  const r = await fetch(`${API}/api/budgets`);
+  const d = await r.json();
+  const grid = document.getElementById('budgets-grid');
+  const empty = document.getElementById('budgets-empty');
+  if (!d.budgets.length) { grid.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = d.budgets.map(b => {
+    const pct = Math.min(100, (b.spent_usd / b.limit_usd) * 100);
+    const color = pct > 80 ? 'var(--danger)' : pct > 60 ? 'var(--warn)' : 'var(--accent)';
+    return `
+      <div class="card" style="padding:16px;position:relative">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+          <div>
+            <div style="font-family:var(--mono);font-size:13px;color:#fff;margin-bottom:2px">${b.name}</div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${b.period}</div>
+          </div>
+          <button class="btn btn-sm btn-danger" onclick="deleteBudget(${b.id})">✕</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);margin-bottom:8px">
+          <span style="color:${color};font-size:20px;font-weight:600">$${b.spent_usd.toFixed(4)}</span>
+          <span style="color:var(--muted)">/ $${b.limit_usd.toFixed(2)}</span>
+        </div>
+        <div style="height:4px;background:var(--border2);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;transition:width 0.3s"></div>
+        </div>
+        <div style="text-align:right;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px">${pct.toFixed(1)}%</div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function createBudget() {
+  const body = {
+    name: document.getElementById('budget-name').value,
+    limit_usd: parseFloat(document.getElementById('budget-limit').value),
+    period: document.getElementById('budget-period').value,
+  };
+  if (!body.name || isNaN(body.limit_usd)) { notify('Name and limit required'); return; }
+  await fetch(`${API}/api/budgets`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+  closeModal('budget-modal');
+  notify('Budget created');
+  loadBudgets();
+}
+
+async function deleteBudget(id) {
+  await fetch(`${API}/api/budgets/${id}`, { method: 'DELETE' });
+  notify('Budget deleted');
+  loadBudgets();
+}
+
+// ── Settings ────────────────────────────────────────────────────────────────
+async function loadSettings() {
+  const r = await fetch(`${API}/api/settings`);
+  const s = await r.json();
+  document.getElementById('s-cache-enabled').checked = s.cache_enabled;
+  document.getElementById('s-semantic-enabled').checked = s.semantic_enabled;
+  document.getElementById('s-mocks-enabled').checked = s.mocks_enabled;
+  const thr = document.getElementById('s-threshold');
+  thr.value = s.semantic_threshold || 0.88;
+  document.getElementById('threshold-val').textContent = thr.value;
+  document.getElementById('s-ttl').value = s.cache_ttl || 86400;
+}
+
+async function saveSetting(key, value) {
+  await fetch(`${API}/api/settings`, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ [key]: value })
+  });
+  notify(`${key} updated`);
+}
+
+// ── Pricing ─────────────────────────────────────────────────────────────────
+async function loadPricing() {
+  const r = await fetch(`${API}/api/pricing`);
+  const p = await r.json();
+  const tbody = document.getElementById('pricing-table');
+  tbody.innerHTML = Object.entries(p).map(([model, prices]) => `
+    <tr>
+      <td style="color:var(--text)">${model}</td>
+      <td style="color:var(--accent)">$${prices.in.toFixed(2)}</td>
+      <td style="color:var(--warn)">$${prices.out.toFixed(2)}</td>
+    </tr>
+  `).join('');
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+function refreshAll() {
+  loadAnalytics();
+  notify('Refreshed');
+}
+
+loadAnalytics();
+</script>
+</body>
+</html>

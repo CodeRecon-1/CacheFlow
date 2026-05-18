@@ -1,0 +1,8 @@
+{
+  "cache_enabled": true,
+  "semantic_enabled": true,
+  "mocks_enabled": true,
+  "semantic_threshold": 0.8,
+  "cache_ttl": 86400,
+  "budget_enforce": false
+}
